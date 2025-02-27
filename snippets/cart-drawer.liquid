@@ -464,10 +464,10 @@
                                   Add Embroidered Name <span class="text-2xl font-semibold text-gray-900">(+{{ product.metafields.custom.embroidery_base_price | money }})</span>
                                   </label>
                             </div>
-                            {% if item.properties['Embroidery Name'] or item.properties['Embroidery Color'] or item.properties['Embroidery Font'] %}
+                            {% if item.properties['Embroidery Character'] or item.properties['Embroidery Color'] or item.properties['Embroidery Font'] %}
                               <div class="mt-3 embroidery-display {% unless item.properties['Add Embroidery'] %}hidden{% endunless %}">
                                 <p class="text-2xl">
-                                  Embroidered Name: "{{ item.properties['Embroidery Name'] }}", 
+                                  Embroidered Character: "{{ item.properties['Embroidery Character'] }}", 
                                   {{ item.properties['Embroidery Color'] }}, 
                                   {{ item.properties['Embroidery Font'] }}
                                 </p>
@@ -612,9 +612,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Xóa properties khi checkbox bị uncheck
                 updateCartItem(itemKey, quantity, {
                     'Add Embroidery': null,
-                    'Embroidery Name': null,
+                    'Embroidery Character': null,
                     'Embroidery Color': null,
-                    'Embroidery Font': null
+                    'Embroidery Font': null,
+                    'Embroidery Image': null
                 });
             }
         });
