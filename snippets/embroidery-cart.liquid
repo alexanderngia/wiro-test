@@ -1,0 +1,81 @@
+{% for item in cart.items %}
+    {% if item.properties['Add Embroidery'] == 'Yes' %}
+      <div class="cart-item-embroidery-edit" data-item-key="{{ item.key }}">
+        <button type="button" class="edit-embroidery-btn" data-item-key="{{ item.key }}">
+          Edit Embroidery Options
+        </button>
+        
+        <div class="edit-embroidery-form" style="display: none;">
+          <input type="text" name="updates[{{ item.key }}][properties][Embroidery Name]" 
+                 value="{{ item.properties['Embroidery Name'] }}" 
+                 class="embroidery-name-edit"
+                 maxlength="{{ item.product.metafields.custom.embroidery_char_limit }}">
+          
+          <!-- Hiển thị các tùy chọn màu sắc và font tương tự như trong trang sản phẩm -->
+          <!-- Sử dụng JavaScript để tải các tùy chọn dựa trên sản phẩm -->
+          
+          <button type="button" class="save-embroidery-btn" data-item-key="{{ item.key }}">
+            Save Changes
+          </button>
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+  <script>
+  // JavaScript để xử lý chỉnh sửa trong giỏ hàng
+  document.addEventListener('DOMContentLoaded', function() {
+    // Xử lý nút Edit Embroidery
+    const editButtons = document.querySelectorAll('.edit-embroidery-btn');
+    editButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const itemKey = this.getAttribute('data-item-key');
+        const editForm = document.querySelector(`.edit-embroidery-form[data-item-key="${itemKey}"]`);
+        if (editForm) {
+          editForm.style.display = editForm.style.display === 'none' ? 'block' : 'none';
+        }
+      });
+    });
+    
+    // Xử lý nút Save Changes
+    const saveButtons = document.querySelectorAll('.save-embroidery-btn');
+    saveButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const itemKey = this.getAttribute('data-item-key');
+        const nameInput = document.querySelector(`.embroidery-name-edit[data-item-key="${itemKey}"]`);
+        const colorInput = document.querySelector(`input[name="updates[${itemKey}][properties][Embroidery Color]"]:checked`);
+        const fontInput = document.querySelector(`input[name="updates[${itemKey}][properties][Embroidery Font]"]:checked`);
+        
+        // Cập nhật giỏ hàng qua AJAX
+        const updates = {
+          updates: {
+            [itemKey]: {
+              quantity: document.querySelector(`input[name="updates[${itemKey}]"]`).value,
+              properties: {
+                'Add Embroidery': 'Yes',
+                'Embroidery Name': nameInput.value,
+                'Embroidery Color': colorInput ? colorInput.value : null,
+                'Embroidery Font': fontInput ? fontInput.value : null
+              }
+            }
+          }
+        };
+        
+        fetch('/cart/update.js', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updates)
+        })
+        .then(response => response.json())
+        .then(data => {
+          // Refresh trang giỏ hàng sau khi cập nhật
+          window.location.reload();
+        })
+        .catch(error => {
+          console.error('Error updating cart:', error);
+        });
+      });
+    });
+  });
+  </script>

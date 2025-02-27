@@ -1,0 +1,56 @@
+{
+  "article": [],
+  "blog": [],
+  "brand": [],
+  "collection": [],
+  "company": [],
+  "company_location": [],
+  "location": [],
+  "market": [],
+  "order": [],
+  "page": [],
+  "product": [
+    {
+      "key": "embroidery_enabled",
+      "namespace": "custom",
+      "name": "Embroidery Enabled",
+      "description": "",
+      "type": {
+        "name": "boolean",
+        "category": "TRUE_FALSE"
+      }
+    },
+    {
+      "key": "embroidery_char_limit",
+      "namespace": "custom",
+      "name": "Embroidery Character Limit ",
+      "description": "",
+      "type": {
+        "name": "number_integer",
+        "category": "NUMBER"
+      }
+    },
+    {
+      "key": "embroidery_image",
+      "namespace": "custom",
+      "name": "Embroidery Image",
+      "description": "",
+      "type": {
+        "name": "file_reference",
+        "category": "REFERENCE"
+      }
+    },
+    {
+      "key": "embroidery_options",
+      "namespace": "custom",
+      "name": "Embroidery Options JSON ",
+      "description": "",
+      "type": {
+        "name": "json",
+        "category": "JSON"
+      }
+    }
+  ],
+  "variant": [],
+  "shop": []
+}
