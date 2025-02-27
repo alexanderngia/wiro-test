@@ -88,7 +88,7 @@
           <div id="CartDrawer-CartItems" class="drawer__contents js-contents">
             {%- if cart != empty -%}
               <div class="drawer__cart-items-wrapper">
-                <table class="cart-items" role="table">
+                <table class="cart-items w-full table-fixed" role="table">
                   <thead role="rowgroup">
                     <tr role="row">
                       <th id="CartDrawer-ColumnProductImage" role="columnheader">
@@ -164,7 +164,7 @@
                             </div>
                           {%- endif -%}
 
-                          {%- if item.product.has_only_default_variant == false
+                         {%- if item.product.has_only_default_variant == false
                             or item.properties.size != 0
                             or item.selling_plan_allocation != null
                           -%}
@@ -181,7 +181,7 @@
                                 {%- endfor -%}
                               {%- endif -%}
 
-                              {%- for property in item.properties -%}
+                              {% comment %} {%- for property in item.properties -%}
                                 {%- assign property_first_char = property.first | slice: 0 -%}
                                 {%- if property.last != blank and property_first_char != '_' -%}
                                   <div class="product-option">
@@ -202,11 +202,11 @@
                                     </dd>
                                   </div>
                                 {%- endif -%}
-                              {%- endfor -%}
+                              {%- endfor -%} {% endcomment %}
                             </dl>
 
                             <p class="product-option">{{ item.selling_plan_allocation.selling_plan.name }}</p>
-                          {%- endif -%}
+                          {%- endif -%} 
 
                           <ul
                             class="discounts list-unstyled"
@@ -441,6 +441,46 @@
                           </quantity-popover>
                         </td>
                       </tr>
+                      {% if item.properties['Add Embroidery'] == "Yes" %}
+
+                      <tr class="grid mt-4" id="embroidery-section-{{ item.key }}" role="row">
+                        <td id="embroidery-section" colspan="4" class="border border-none rounded-md !p-8  {% if item.properties['Add Embroidery'] == "Yes" %} bg-gray-100 {% endif %} w-full" >
+                          <div class="embroidery-option">
+                            <div class="flex items-center gap-2">
+                              <label for="embroidery-{{ item.key }}" class="flex items-center cursor-pointer relative">
+                                <input id="embroidery-{{ item.key }}" 
+                                {% if item.properties['Add Embroidery'] %} checked {% endif %}
+                                data-item-key="{{ item.key }}" form="{{ product_form_id }}" type="checkbox" name="properties[Add Embroidery]" value="Yes" 
+                                class="embroidery-checkbox mr-0 bg-white peer !h-6 !w-6 cursor-pointer transition-all appearance-none rounded-[5px] border border-slate-300 checked:bg-slate-800 checked:border-slate-800">
+                                  <span class="absolute text-white opacity-0 peer-checked:opacity-100 top-0.5 left-1 transform w-5 h-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-4" viewBox="0 0 20 20" fill="currentColor" stroke="currentColor" stroke-width="1">
+                                    <path fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"></path>
+                                  </svg>
+                                  </span>
+                                </label>
+                                <label class="text-2xl cursor-pointer text-gray-900 font-semibold" for="embroidery-{{ item.key }}">
+                                  Add Embroidered Name <span class="text-2xl font-semibold text-gray-900">(+{{ product.metafields.custom.embroidery_base_price | money }})</span>
+                                  </label>
+                            </div>
+                            {% if item.properties['Embroidery Name'] or item.properties['Embroidery Color'] or item.properties['Embroidery Font'] %}
+                              <div class="mt-3 embroidery-display {% unless item.properties['Add Embroidery'] %}hidden{% endunless %}">
+                                <p class="text-2xl">
+                                  Embroidered Name: "{{ item.properties['Embroidery Name'] }}", 
+                                  {{ item.properties['Embroidery Color'] }}, 
+                                  {{ item.properties['Embroidery Font'] }}
+                                </p>
+                              </div>
+                          {% endif %}
+
+                          </div>
+                       
+                          </td>
+                      </tr>
+                    {% endif %}
+
+                
                     {%- endfor -%}
                   </tbody>
                 </table>
@@ -559,3 +599,45 @@
     </div>
   </div>
 </cart-drawer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Lặp qua tất cả checkbox embroidery
+    document.querySelectorAll("input.embroidery-checkbox").forEach((checkbox) => {
+        checkbox.addEventListener('change', function() {
+            const itemKey = this.dataset.itemKey; // Lấy itemKey từ data attribute
+            const quantity = this.dataset.quantity || 1; // Giữ nguyên số lượng hiện tại
+
+            if (!this.checked && itemKey) {
+                // Xóa properties khi checkbox bị uncheck
+                updateCartItem(itemKey, quantity, {
+                    'Add Embroidery': null,
+                    'Embroidery Name': null,
+                    'Embroidery Color': null,
+                    'Embroidery Font': null
+                });
+            }
+        });
+    });
+
+    // Function cập nhật Line Item Properties trên Shopify
+    function updateCartItem(itemKey, quantity, properties) {
+        fetch('/cart/change.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: itemKey, 
+                quantity: quantity, // Giữ nguyên số lượng
+                properties: properties
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Cart updated:', data);
+        })
+        .catch(error => console.error('Error updating cart:', error));
+    }
+});
+
+
+</script>
