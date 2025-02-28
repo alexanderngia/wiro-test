@@ -441,45 +441,8 @@
                           </quantity-popover>
                         </td>
                       </tr>
-                      {% if item.properties['Add Embroidery'] == "Yes" %}
-
-                      <tr class="grid mt-4" id="embroidery-section-{{ item.key }}" role="row">
-                        <td id="embroidery-section" colspan="4" class="border border-none rounded-md !p-8  {% if item.properties['Add Embroidery'] == "Yes" %} bg-gray-100 {% endif %} w-full" >
-                          <div class="embroidery-option">
-                            <div class="flex items-center gap-2">
-                              <label for="embroidery-{{ item.key }}" class="flex items-center cursor-pointer relative">
-                                <input id="embroidery-{{ item.key }}" 
-                                {% if item.properties['Add Embroidery'] %} checked {% endif %}
-                                data-item-key="{{ item.key }}" form="{{ product_form_id }}" type="checkbox" name="properties[Add Embroidery]" value="Yes" 
-                                class="embroidery-checkbox mr-0 bg-white peer !h-6 !w-6 cursor-pointer transition-all appearance-none rounded-[5px] border border-slate-300 checked:bg-slate-800 checked:border-slate-800">
-                                  <span class="absolute text-white opacity-0 peer-checked:opacity-100 top-0.5 left-1 transform w-5 h-5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-4" viewBox="0 0 20 20" fill="currentColor" stroke="currentColor" stroke-width="1">
-                                    <path fill-rule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clip-rule="evenodd"></path>
-                                  </svg>
-                                  </span>
-                                </label>
-                                <label class="text-2xl cursor-pointer text-gray-900 font-semibold" for="embroidery-{{ item.key }}">
-                                  Add Embroidered Name <span class="text-2xl font-semibold text-gray-900">(+{{ product.metafields.custom.embroidery_base_price | money }})</span>
-                                  </label>
-                            </div>
-                            {% if item.properties['Embroidery Character'] or item.properties['Embroidery Color'] or item.properties['Embroidery Font'] %}
-                              <div class="mt-3 embroidery-display {% unless item.properties['Add Embroidery'] %}hidden{% endunless %}">
-                                <p class="text-2xl">
-                                  Embroidered Character: "{{ item.properties['Embroidery Character'] }}", 
-                                  {{ item.properties['Embroidery Color'] }}, 
-                                  {{ item.properties['Embroidery Font'] }}
-                                </p>
-                              </div>
-                          {% endif %}
-
-                          </div>
-                       
-                          </td>
-                      </tr>
-                    {% endif %}
-
+            
+                    {% render 'embroidery-cart', item: item %}
                 
                     {%- endfor -%}
                   </tbody>
@@ -601,44 +564,99 @@
 </cart-drawer>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Lặp qua tất cả checkbox embroidery
-    document.querySelectorAll("input.embroidery-checkbox").forEach((checkbox) => {
-        checkbox.addEventListener('change', function() {
-            const itemKey = this.dataset.itemKey; // Lấy itemKey từ data attribute
-            const quantity = this.dataset.quantity || 1; // Giữ nguyên số lượng hiện tại
+function calculateCartPrices() {
+  fetch('/cart.js')
+    .then(response => response.json())
+    .then(cart => {
+      // Cập nhật các line items
+      const updatedItems = cart.items.map(item => {
+        // Lấy giá từ properties nếu có
+        let additionalPrice = 0;
+        if (item.properties["Embroidery Price"]) {
+          // Giả sử properties có key là 'additional_price'
+          additionalPrice = parseFloat(item.properties["Embroidery Price"] || 0);
+        }
+        
+        // Tính toán final_line_price mới
+        const finalPrice = (item.price + additionalPrice) * item.quantity;
+        
+        return {
+          id: item.key,
+          quantity: item.quantity,
+          properties: {
+            ...item.properties,
+            final_price: finalPrice / 100 // Chuyển về định dạng tiền tệ
+          }
+        };
+      });
+      
+      // Cập nhật giỏ hàng
+      return fetch('/cart/update.js', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ updates: updatedItems })
+      });
+    })
+    .then(response => response.json())
+    .then(cart => {
+      // Cập nhật UI sau khi cập nhật giỏ hàng
+      updateCartUI(cart);
+    })
+    .catch(error => console.error('Error updating cart:', error));
+}
 
-            if (!this.checked && itemKey) {
-                // Xóa properties khi checkbox bị uncheck
-                updateCartItem(itemKey, quantity, {
-                    'Add Embroidery': null,
-                    'Embroidery Character': null,
-                    'Embroidery Color': null,
-                    'Embroidery Font': null,
-                    'Embroidery Image': null
-                });
-            }
-        });
-    });
-
-    // Function cập nhật Line Item Properties trên Shopify
-    function updateCartItem(itemKey, quantity, properties) {
-        fetch('/cart/change.js', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: itemKey, 
-                quantity: quantity, // Giữ nguyên số lượng
-                properties: properties
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Cart updated:', data);
-        })
-        .catch(error => console.error('Error updating cart:', error));
+function updateCartUI(cart) {
+  // Cập nhật hiển thị giá trong giỏ hàng
+  const cartItemElements = document.querySelectorAll('.cart-item');
+  
+  cart.items.forEach((item, index) => {
+    if (item.properties && item.properties.final_price) {
+      const priceElement = cartItemElements[index]?.querySelector('.price-item');
+      if (priceElement) {
+        // Định dạng tiền tệ (có thể sử dụng Shopify.formatMoney nếu có sẵn)
+        const formattedPrice = (typeof Shopify.formatMoney === 'function') 
+          ? Shopify.formatMoney(item.properties.final_price * 100) 
+          : `${item.properties.final_price}`;
+          
+        priceElement.textContent = formattedPrice;
+      }
     }
-});
+  });
+  
+  // Cập nhật tổng giá
+  const subtotalElement = document.querySelector('.totals__subtotal-value');
+  if (subtotalElement && cart.total_price) {
+    // Định dạng tiền tệ
+    const formattedTotal = (typeof Shopify.formatMoney === 'function') 
+      ? Shopify.formatMoney(cart.total_price) 
+      : `${cart.total_price / 100}`;
+      
+    subtotalElement.textContent = formattedTotal;
+  }
+}
 
+// Kích hoạt tính năng khi trang được tải
+document.addEventListener('DOMContentLoaded', function() {
+  // Gọi hàm khi trang được tải
+  calculateCartPrices();
+  
+  // Gọi hàm khi có thay đổi trong giỏ hàng
+  document.addEventListener('cart:refresh', calculateCartPrices);
+  
+  // Nắm bắt các sự kiện thay đổi số lượng
+  document.querySelectorAll('[name^="updates["]').forEach(quantityInput => {
+    quantityInput.addEventListener('change', function() {
+      // Đợi Ajax request của Shopify hoàn thành, sau đó cập nhật giá
+      setTimeout(calculateCartPrices, 500);
+    });
+  });
+  
+  // Nắm bắt sự kiện thêm sản phẩm vào giỏ hàng
+  document.addEventListener('product:added', function() {
+    setTimeout(calculateCartPrices, 500);
+  });
+});
 
 </script>
